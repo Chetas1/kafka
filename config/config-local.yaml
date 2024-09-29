@@ -1,0 +1,10 @@
+Kafka:
+  broker: localhost:9092
+  username: "admin"
+  password: "admin-secret"
+
+KafkaProducer:
+  topic: produce_events
+
+KafkaConsumer:
+  topic: consume_events
