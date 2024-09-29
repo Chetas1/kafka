@@ -1,4 +1,4 @@
-module github/chetasp/crowdstrike
+module github/chetasp/kafka
 
 go 1.20
 

@@ -2,7 +2,7 @@ package kafka
 
 import (
 	"fmt"
-	"github/chetasp/crowdstrike/config"
+	"github/chetasp/kafka/config"
 	"log"
 
 	"github.com/confluentinc/confluent-kafka-go/kafka"

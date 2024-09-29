@@ -2,7 +2,7 @@ package consumer
 
 import (
 	"fmt"
-	"github/chetasp/crowdstrike/config"
+	"github/chetasp/kafka/config"
 )
 
 type EventConsumer interface {

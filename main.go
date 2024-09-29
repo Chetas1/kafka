@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github/chetasp/crowdstrike/app"
-	"github/chetasp/crowdstrike/config"
+	"github/chetasp/kafka/app"
+	"github/chetasp/kafka/config"
 )
 
 func main() {

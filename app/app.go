@@ -2,9 +2,9 @@ package app
 
 import (
 	"fmt"
-	"github/chetasp/crowdstrike/config"
-	"github/chetasp/crowdstrike/internal/consumer"
-	kafkahelper "github/chetasp/crowdstrike/internal/kafka"
+	"github/chetasp/kafka/config"
+	"github/chetasp/kafka/internal/consumer"
+	kafkahelper "github/chetasp/kafka/internal/kafka"
 	"log"
 	"os"
 	"os/signal"
