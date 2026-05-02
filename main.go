@@ -1,22 +1,43 @@
+// Command kafka boots the producer + consumer composition and shuts down
+// gracefully on SIGINT/SIGTERM.
 package main
 
 import (
-	"fmt"
-	"github/chetasp/kafka/app"
-	"github/chetasp/kafka/config"
+	"context"
+	"log"
+	"os"
+	"os/signal"
+	"syscall"
+
+	"github.com/Chetas1/kafka/app"
+	"github.com/Chetas1/kafka/config"
 )
 
 func main() {
+	if err := run(); err != nil {
+		log.Printf("fatal: %v", err)
+		os.Exit(1)
+	}
+}
 
-	config, err := config.GetConfig()
+func run() error {
+	cfg, err := config.GetConfig()
 	if err != nil {
-		fmt.Print("error getting config")
+		return err
 	}
 
-	app, err := app.InitializeApplication(config)
-	if err != nil {
-		fmt.Print("error initializing application")
-	}
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
 
-	app.Run(config)
+	a, err := app.InitializeApplication(cfg)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if cerr := a.Close(); cerr != nil {
+			log.Printf("close app: %v", cerr)
+		}
+	}()
+
+	return a.Run(ctx)
 }

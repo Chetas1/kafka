@@ -1,25 +1,32 @@
+// Package consumer is the application-layer event handler. It receives raw
+// strings from the kafka transport package and turns them into business
+// actions. Today's implementation just logs; replace `Process` with the real
+// handler when the schema stabilizes.
 package consumer
 
 import (
-	"fmt"
-	"github/chetasp/kafka/config"
+	"log"
+
+	"github.com/Chetas1/kafka/config"
 )
 
+// EventConsumer is the application-layer interface for processing messages.
 type EventConsumer interface {
 	Process(message string) error
 }
 
 type eventConsumer struct {
-	config config.Config
+	cfg config.Config
 }
 
-func NewEventConsumer(config config.Config) EventConsumer {
-	return &eventConsumer{
-		config: config,
-	}
+// NewEventConsumer constructs an EventConsumer bound to the given config.
+func NewEventConsumer(cfg config.Config) EventConsumer {
+	return &eventConsumer{cfg: cfg}
 }
 
+// Process handles a single message. Returning an error stops the consumer
+// loop; nil acknowledges the message.
 func (e *eventConsumer) Process(message string) error {
-	fmt.Printf("received kafka messgae %s", message)
+	log.Printf("event_consumer: received message %q", message)
 	return nil
 }
