@@ -7,7 +7,7 @@ package consumer
 import (
 	"log"
 
-	"github.com/Chetas1/kafka/config"
+	"github.com/Chetas-Patil/kafka/config"
 )
 
 // EventConsumer is the application-layer interface for processing messages.

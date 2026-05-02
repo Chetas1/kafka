@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/Chetas1/kafka/config"
+	"github.com/Chetas-Patil/kafka/config"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 )
 

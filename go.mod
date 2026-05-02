@@ -1,4 +1,4 @@
-module github.com/Chetas1/kafka
+module github.com/Chetas-Patil/kafka
 
 go 1.20
 

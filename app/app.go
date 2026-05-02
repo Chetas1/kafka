@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/Chetas1/kafka/config"
-	"github.com/Chetas1/kafka/internal/consumer"
-	kafkahelper "github.com/Chetas1/kafka/internal/kafka"
+	"github.com/Chetas-Patil/kafka/config"
+	"github.com/Chetas-Patil/kafka/internal/consumer"
+	kafkahelper "github.com/Chetas-Patil/kafka/internal/kafka"
 )
 
 // App is the runtime composition of producer, consumer, and event handler.

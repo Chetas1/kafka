@@ -9,8 +9,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/Chetas1/kafka/app"
-	"github.com/Chetas1/kafka/config"
+	"github.com/Chetas-Patil/kafka/app"
+	"github.com/Chetas-Patil/kafka/config"
 )
 
 func main() {

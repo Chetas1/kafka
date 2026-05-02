@@ -2,8 +2,8 @@
 
 > A minimal, production-ready Kafka producer + consumer scaffold in Go, built on top of [`confluent-kafka-go`](https://github.com/confluentinc/confluent-kafka-go) (librdkafka). Configuration via Viper + env, graceful shutdown via `signal.NotifyContext`, delivery-confirmed produces, fatal-aware consume loop.
 
-[![CI](https://github.com/Chetas1/kafka/actions/workflows/ci.yml/badge.svg)](https://github.com/Chetas1/kafka/actions/workflows/ci.yml)
-[![Security](https://github.com/Chetas1/kafka/actions/workflows/security.yml/badge.svg)](https://github.com/Chetas1/kafka/actions/workflows/security.yml)
+[![CI](https://github.com/Chetas-Patil/kafka/actions/workflows/ci.yml/badge.svg)](https://github.com/Chetas-Patil/kafka/actions/workflows/ci.yml)
+[![Security](https://github.com/Chetas-Patil/kafka/actions/workflows/security.yml/badge.svg)](https://github.com/Chetas-Patil/kafka/actions/workflows/security.yml)
 [![Go Version](https://img.shields.io/badge/Go-1.20+-00ADD8?logo=go&logoColor=white)](https://go.dev/dl/)
 [![Apache Kafka](https://img.shields.io/badge/Apache_Kafka-231F20?logo=apachekafka&logoColor=white)](https://kafka.apache.org)
 
