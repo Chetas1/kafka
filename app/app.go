@@ -1,77 +1,95 @@
+// Package app wires producer + consumer + event handler into a single
+// runtime. App.Run produces a small burst of test messages, then blocks on
+// the consumer until ctx is cancelled.
 package app
 
 import (
+	"context"
 	"fmt"
-	"github/chetasp/kafka/config"
-	"github/chetasp/kafka/internal/consumer"
-	kafkahelper "github/chetasp/kafka/internal/kafka"
 	"log"
-	"os"
-	"os/signal"
-	"syscall"
+
+	"github.com/Chetas1/kafka/config"
+	"github.com/Chetas1/kafka/internal/consumer"
+	kafkahelper "github.com/Chetas1/kafka/internal/kafka"
 )
 
-type IApp interface {
-	Run(config config.Config) error
-}
-
+// App is the runtime composition of producer, consumer, and event handler.
 type App struct {
-	config   *config.Config
-	producer *kafkahelper.KafkaProducer
-	consumer *kafkahelper.KafkaConsumer
-	sigchan  chan os.Signal
+	cfg      *config.Config
+	producer *kafkahelper.Producer
+	consumer *kafkahelper.Consumer
+	events   consumer.EventConsumer
 }
 
-// InitializeApplication initializes the application with the given configuration
+// InitializeApplication constructs producer + consumer, returning a wrapped
+// error and freeing the producer if the consumer fails to construct.
 func InitializeApplication(cfg config.Config) (*App, error) {
 	producer, err := kafkahelper.NewProducer(&cfg)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create producer: %w", err)
+		return nil, fmt.Errorf("init producer: %w", err)
 	}
 
-	consumer, err := kafkahelper.NewConsumer(&cfg)
+	cons, err := kafkahelper.NewConsumer(&cfg)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create consumer: %w", err)
+		if cerr := producer.Close(); cerr != nil {
+			log.Printf("close producer after consumer init failure: %v", cerr)
+		}
+		return nil, fmt.Errorf("init consumer: %w", err)
 	}
 
-	app := &App{
-		config:   &cfg,
+	return &App{
+		cfg:      &cfg,
 		producer: producer,
-		consumer: consumer,
-		sigchan:  make(chan os.Signal, 1),
-	}
-
-	return app, nil
+		consumer: cons,
+		events:   consumer.NewEventConsumer(cfg),
+	}, nil
 }
 
-// Run starts the application
-func (a *App) Run(config config.Config) error {
-
-	eventConsumer := consumer.NewEventConsumer(config)
-
-	for i := 0; i < 10; i++ {
+// Run produces a small burst of demo messages, then runs the consumer loop
+// until ctx is cancelled. Returns the first non-cancellation error from
+// either producer or consumer.
+func (a *App) Run(ctx context.Context) error {
+	const demoBurst = 10
+	for i := 0; i < demoBurst; i++ {
 		message := fmt.Sprintf("Message-%d", i)
 		if err := a.producer.Produce(message); err != nil {
-			log.Printf("Failed to produce message: %v", err)
+			log.Printf("produce %d: %v", i, err)
 		}
 	}
 
-	signal.Notify(a.sigchan, syscall.SIGINT, syscall.SIGTERM)
-
+	consumerErr := make(chan error, 1)
 	go func() {
-		err := a.consumer.Consume(func(message string) {
-			eventConsumer.Process(message)
+		consumerErr <- a.consumer.Consume(ctx, func(message string) {
+			if err := a.events.Process(message); err != nil {
+				log.Printf("process: %v", err)
+			}
 		})
-		if err != nil {
-			log.Fatalf("Error in consuming messages: %v", err)
-		}
 	}()
 
-	<-a.sigchan
-	fmt.Println("Shutting down...")
-
-	a.producer.Close()
-	a.consumer.Close()
-
+	select {
+	case <-ctx.Done():
+		log.Printf("shutdown signal received")
+	case err := <-consumerErr:
+		if err != nil && err != context.Canceled {
+			return fmt.Errorf("consumer: %w", err)
+		}
+	}
 	return nil
+}
+
+// Close flushes the producer and stops the consumer. Errors from each are
+// logged; the first is returned so the caller can react.
+func (a *App) Close() error {
+	var firstErr error
+	if err := a.producer.Close(); err != nil {
+		log.Printf("close producer: %v", err)
+		firstErr = err
+	}
+	if err := a.consumer.Close(); err != nil {
+		log.Printf("close consumer: %v", err)
+		if firstErr == nil {
+			firstErr = err
+		}
+	}
+	return firstErr
 }

@@ -1,10 +1,16 @@
+# Local development config. Override via env vars:
+#   KAFKA_BROKER, KAFKA_USERNAME, KAFKA_PASSWORD,
+#   KAFKAPRODUCER_TOPIC, KAFKACONSUMER_TOPIC, KAFKACONSUMER_GROUP
+# DO NOT commit real credentials here.
+
 Kafka:
   broker: localhost:9092
-  username: "admin"
-  password: "admin-secret"
+  username: ""
+  password: ""
 
 KafkaProducer:
   topic: produce_events
 
 KafkaConsumer:
   topic: consume_events
+  group: consume_group

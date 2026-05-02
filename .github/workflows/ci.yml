@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  vet:
+    name: vet
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Install librdkafka
+        run: sudo apt-get update && sudo apt-get install -y librdkafka-dev pkg-config
+      - run: go vet ./...
+
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Install librdkafka
+        run: sudo apt-get update && sudo apt-get install -y librdkafka-dev pkg-config
+      - uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.12
+
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Install librdkafka
+        run: sudo apt-get update && sudo apt-get install -y librdkafka-dev pkg-config
+      - run: go build ./...
+        env:
+          CGO_ENABLED: '1'

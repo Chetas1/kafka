@@ -1,49 +1,80 @@
 package kafka
 
 import (
+	"context"
+	"errors"
 	"fmt"
-	"github/chetasp/kafka/config"
-	"log"
 
+	"github.com/Chetas1/kafka/config"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 )
 
-type KafkaConsumer struct {
+// Consumer subscribes to a single topic and dispatches messages to a handler.
+type Consumer struct {
 	consumer *kafka.Consumer
 	topic    string
 }
 
-// NewConsumer creates a new Kafka consumer
-func NewConsumer(config *config.Config) (*KafkaConsumer, error) {
+// NewConsumer connects to the configured broker and subscribes to the
+// configured topic. Errors during connection or subscription are returned
+// without leaking a half-initialised *kafka.Consumer.
+func NewConsumer(cfg *config.Config) (*Consumer, error) {
 	c, err := kafka.NewConsumer(&kafka.ConfigMap{
-		"bootstrap.servers": config.Kafka.Broker,
-		"group.id":          config.KafkaConsumer.Group,
+		"bootstrap.servers": cfg.Kafka.Broker,
+		"group.id":          cfg.KafkaConsumer.Group,
 		"auto.offset.reset": "earliest",
 		"sasl.mechanisms":   "PLAIN",
 		"security.protocol": "SASL_PLAINTEXT",
-		"sasl.username":     config.Kafka.Username,
-		"sasl.password":     config.Kafka.Password,
+		"sasl.username":     cfg.Kafka.Username,
+		"sasl.password":     cfg.Kafka.Password,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to create consumer: %w", err)
+		return nil, fmt.Errorf("new kafka consumer: %w", err)
 	}
-	c.SubscribeTopics([]string{config.KafkaConsumer.Topic}, nil)
-	return &KafkaConsumer{consumer: c, topic: config.KafkaConsumer.Topic}, nil
+
+	if err := c.SubscribeTopics([]string{cfg.KafkaConsumer.Topic}, nil); err != nil {
+		_ = c.Close()
+		return nil, fmt.Errorf("subscribe %s: %w", cfg.KafkaConsumer.Topic, err)
+	}
+
+	return &Consumer{consumer: c, topic: cfg.KafkaConsumer.Topic}, nil
 }
 
-// Consume reads messages from the Kafka topic
-func (kc *KafkaConsumer) Consume(handler func(string)) error {
+// Consume polls for messages and invokes handler synchronously per message.
+// It returns when ctx is cancelled (normal shutdown) or when the consumer is
+// closed (returns ErrConsumerClosed).
+func (kc *Consumer) Consume(ctx context.Context, handler func(string)) error {
+	const pollTimeoutMs = 100
 	for {
-		msg, err := kc.consumer.ReadMessage(-1)
-		if err == nil {
-			handler(string(msg.Value))
-		} else {
-			log.Printf("consumer error: %v (%v)", err, msg)
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
+		ev := kc.consumer.Poll(pollTimeoutMs)
+		switch e := ev.(type) {
+		case *kafka.Message:
+			handler(string(e.Value))
+		case kafka.Error:
+			// Fatal client-side errors propagate up; transient errors are logged
+			// upstream by callers (we don't want to spam from a hot loop).
+			if e.IsFatal() {
+				return fmt.Errorf("kafka consumer fatal: %w", e)
+			}
+		case nil:
+			// Poll timeout — loop and re-check ctx.
+		default:
+			// Other events (offset commits, partition assignments, ...) are
+			// no-ops for this thin wrapper.
 		}
 	}
 }
 
-// Close closes the consumer
-func (kc *KafkaConsumer) Close() {
-	kc.consumer.Close()
+// Close shuts down the underlying consumer. It is safe to call from a defer.
+func (kc *Consumer) Close() error {
+	if err := kc.consumer.Close(); err != nil && !errors.Is(err, ErrConsumerClosed) {
+		return fmt.Errorf("close consumer: %w", err)
+	}
+	return nil
 }
